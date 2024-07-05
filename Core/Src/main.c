@@ -40,20 +40,47 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim10;
 
 /* USER CODE BEGIN PV */
+volatile uint8_t buttonPressed = 0;
+volatile uint8_t debounce_flag = 0;
+
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_TIM10_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+		if(!debounce_flag){
+			debounce_flag = 1;	// debouncing folyamat elindítása
+			//__HAL_TIM_SET_COUNTER(&htim10, 0);
+			HAL_TIM_Base_Start_IT(&htim10);	// időzítő indítása
+		}
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+
+	       HAL_TIM_Base_Stop_IT(&htim10);  // Leállítja a TIM10 időzítőt
+
+	        if (HAL_GPIO_ReadPin(GPIOA, BUTTON_Pin) == GPIO_PIN_SET)
+	        {
+	        	buttonPressed = 1;  // Gombnyomás érvényesítése
+	        }
+
+	        debounce_flag = 0;  // Debouncing folyamat befejezése
+
+
+}
+
 
 /* USER CODE END 0 */
 
@@ -86,10 +113,22 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_TIM10_Init();
+
+  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+  HAL_Delay(500);
+  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+  HAL_Delay(500);
+  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+  HAL_Delay(500);
+  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+  HAL_Delay(500);
   /* USER CODE BEGIN 2 */
+  //HAL_TIM_Base_Start_IT(&htim10);
+  //HAL_TIM_Base_Stop_IT(&htim10);
 
   /* USER CODE END 2 */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -97,6 +136,22 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if (buttonPressed)
+	         {
+	             buttonPressed = 0;
+	             HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+	             //HAL_TIM_Base_Stop_IT(&htim10);
+	             // Gombnyomás kezelése
+	         }
+	  /*
+	  if(buttonPressed){
+
+		  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+		  HAL_Delay(200);
+		  buttonPressed = 0;
+		  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+	  }*/
+
   }
   /* USER CODE END 3 */
 }
@@ -140,6 +195,37 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM10 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM10_Init(void)
+{
+
+  /* USER CODE BEGIN TIM10_Init 0 */
+
+  /* USER CODE END TIM10_Init 0 */
+
+  /* USER CODE BEGIN TIM10_Init 1 */
+
+  /* USER CODE END TIM10_Init 1 */
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 999;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 999;   // 15999 - 1 s    7999 - 0.5 3999 - 0.250 ms
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM10_Init 2 */
+
+  /* USER CODE END TIM10_Init 2 */
+
 }
 
 /**
